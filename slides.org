@@ -1,0 +1,310 @@
+#+TITLE: Réseaux de neurones à convolution
+#+PROPERTY: header-args:jupyter-python :session *Py* :results raw drawer :cache no :async yes :exports results :eval yes
+
+#+SUBTITLE: Introduction
+#+AUTHOR: Laurent Siksous
+#+EMAIL: siksous@gmail.com
+# #+DATE:
+#+DESCRIPTION: 
+#+KEYWORDS: 
+#+LANGUAGE:  fr
+
+# specifying the beamer startup gives access to a number of
+# keybindings which make configuring individual slides and components
+# of slides easier.  See, for instance, C-c C-b on a frame headline.
+#+STARTUP: beamer
+
+#+STARTUP: oddeven
+
+# we tell the exporter to use a specific LaTeX document class, as
+# defined in org-latex-classes.  By default, this does not include a
+# beamer entry so this needs to be defined in your configuration (see
+# the tutorial).
+#+LaTeX_CLASS: beamer
+# #+LaTeX_CLASS_OPTIONS: [bigger] 
+
+# #+LATEX_HEADER: \usepackage{listings}
+#+LATEX_HEADER: \definecolor{UBCblue}{rgb}{0.04706, 0.13725, 0.26667} % UBC Blue (primary)
+#+LATEX_HEADER: \usecolortheme[named=UBCblue]{structure}
+#+LaTeX_HEADER: \usepackage{minted}
+#+LaTeX_HEADER: \usemintedstyle{xcode}
+#+LaTeX_HEADER: \newminted{common-lisp}{fontsize=\footnotesize}
+# Raise footnotes 
+#+LaTeX_HEADER:\addtobeamertemplate{footnote}{}{\vspace{2ex}}
+
+# Beamer supports alternate themes.  Choose your favourite here
+#+BEAMER_COLOR_THEME: dolphin
+#+BEAMER_FONT_THEME: professionalfonts
+#+BEAMER_INNER_THEME: [shadow]rounded
+#+BEAMER_OUTER_THEME: infolines
+
+# the beamer exporter expects to be told which level of headlines
+# defines the frames.  We use the first level headlines for sections
+# and the second (hence H:2) for frames.
+#+OPTIONS: ^:t H:2 toc:1
+
+# the following allow us to selectively choose headlines to export or not
+#+SELECT_TAGS: export
+#+EXCLUDE_TAGS: noexport
+
+# for a column view of options and configurations for the individual
+# frames
+#+COLUMNS: %40ITEM %10BEAMER_env(Env) %9BEAMER_envargs(Env Args) %4BEAMER_col(Col) %10BEAMER_extra(Extra)
+
+# #+BEAMER_HEADER: \usebackgroundtemplate{\includegraphics[width=\paperwidth,height=\paperheight,opacity=.01]{img/bg2.jpeg}}
+# #+BEAMER_HEADER: \logo{\includegraphics[height=.5cm,keepaspectratio]{img/bti_logo2.png}\vspace{240pt}}
+# #+BEAMER_HEADER: \setbeamertemplate{background canvas}{\begin{tikzpicture}\node[opacity=.1]{\includegraphics [width=\paperwidth,height=\paperheight]{img/background.jpg}};\end{tikzpicture}}
+# #+BEAMER_HEADER: \logo{\includegraphics[width=\paperwidth,height=\paperheight,keepaspectratio]{img/background.jpg}}
+#+BEAMER_HEADER: \titlegraphic{\includegraphics[width=90]{img/logo.jpg}}
+# #+BEAMER_HEADER: \definecolor{ft}{RGB}{255, 241, 229}
+# #+BEAMER_HEADER: \setbeamercolor{background canvas}{bg=ft}
+#+BEAMER_HEADER: \setbeamerfont{caption}{size=\scriptsize}
+
+#+attr_org: 
+* Preamble                                                         :noexport:
+
+#+begin_src emacs-lisp
+(setq org-latex-image-default-width "5cm")
+(setq org-image-actual-width 400)
+#+end_src
+
+#+RESULTS:
+: 400
+
+* Introduction
+** Introduction
+
+- Les réseaux de neurones convolutifs sont très similaires aux réseaux de
+  neurones ordinaires.
+- Ils sont constitués de neurones qui ont des poids et des biais
+  apprenables.
+- Chaque neurone reçoit des entrées, effectue un produit scalaire et
+  éventuellement applique une non-linéarité.
+- Les architectures ConvNet supposent explicitement que les données en entrée
+  sont des images, ce qui permet d'encoder certaines propriétés en dur dans
+  l'architecture.
+- Ceux-ci rendent alors la fonction de transfert plus efficace à
+  mettre en œuvre et réduisent considérablement la quantité de paramètres dans
+  le réseau.
+  
+** Introduction (2/2)
+
+- Pouvez vous identifier le nombre suivant sous forme vectorielle aplatie sans
+  réorganiser les pixels dans un tableau 2D ?
+  
+#+name: fig:text-block
+#+caption[flattened image]: La disposition spatiale des caractéristiques
+#+caption: (pixels) est importante car nous voyons dans une perspective relativiste. C'est
+#+caption: là que les réseaux de neurones convolutifs brillent.
+#+attr_latex: :width 8cm
+[[./img/flattened.png]]
+
+  
+* Principes
+** Analogies avec le cortex visuel
+***                                                              :B_column:
+:PROPERTIES:
+:BEAMER_env: column
+:BEAMER_COL: 0.6
+:END:
+
+HIERARCHY OF VISUAL CELLS
+
+receptive field
+
+[[cite:&hubelEvolutionIdeasPrimary1982]]
+
+***                                                              :B_column:
+:PROPERTIES:
+:BEAMER_env: column
+:BEAMER_COL: 0.4
+:END:
+
+#+attr_latex: :width 4.5cm
+[[./img/kuffler.png]]
+
+
+#+attr_latex: :width 2.5cm
+[[./img/cells.png]]
+
+** Convolution
+- En mathématiques pures, la convolution est un moyen de mesurer comment la
+  forme d'une fonction est modifiée par la forme d'une autre fonction.
+  
+#+name: fig:text-block
+#+caption[Convolution]: Produit de 2 fonctions
+#+attr_latex: :width 7cm
+[[./img/fg.png]]
+
+** Histoire
+
+- Le terme est pour la première fois employé par D'Alembert en 1754 dans son
+  ouvrage Recherches sur différens poins importans du système du monde
+  [[cite:&alembertRecherchesDifferensPoints1754]].
+- Les opérations de convolution apparaissent ensuite dans les travaux de
+  Laplace, Fourier, Poisson, notamment.
+- Jusque dans les années 1950, plusieurs autres termes lui sont
+  substitué: Faltung (qui signifie pliage en allemand), produit de
+  composition, intégrale de superposition ou intégrale de Carson.
+
+** Filtres à convolution
+***                                                              :B_column:
+:PROPERTIES:
+:BEAMER_env: column
+:BEAMER_COL: 0.6
+:END:
+test
+***                                                              :B_column:
+:PROPERTIES:
+:BEAMER_env: column
+:BEAMER_COL: 0.4
+:END:
+#+ATTR_LATEX: :width 4.5cm
+[[./img/filters.png]]
+
+** Feature maps
+
+- Dans un réseau de neurones convolutif, chaque filtre h_i est répliqué sur
+  l'ensemble du champ visuel.
+
+- Ces unités (neurones) répliquées partagent les mêmes
+  paramétres (vecteur de poids et biais) et forment une carte de
+  caractéristiques (feature map) appelées aussi cartes d'activation (activation
+  map).
+
+** Stride
+
+
+
+** Padding
+***                                                              :B_column:
+:PROPERTIES:
+:BEAMER_env: column
+:BEAMER_COL: 0.6
+:END:
+- Le padding consiste à ajouter des zéros autour du périmètre de l'entrée pour
+  permettre au filtre de la voir en son intégralité.
+  + "SAME" padding : la taille de sortie est la même que la taille
+    d'entrée. Cela nécessite que la fenêtre de filtre sorte de la carte
+    d'entrée. Les parties où la fenêtre de filtre est en dehors de la carte
+    d'entrée constituent le padding.
+  + "VALID" padding : pas de padding. La fenêtre de filtre reste à l'intérieur
+    de la carte d'entrée tout le temps (dans des positions valides), de sorte
+    que la taille de sortie est plus petite que l'entrée.
+
+
+***                                                              :B_column:
+:PROPERTIES:
+:BEAMER_env: column
+:BEAMER_COL: 0.4
+:END:
+
+#+attr_latex: :width 1.8cm
+[[./img/same.png]]
+
+#+attr_latex: :width 2cm
+[[./img/valid.png]]
+
+  
+** Pooling
+
+- Une convolution est le processus d'application d'un filtre ("noyau") à une
+  image.
+- Le pooling est le processus de réduction de la taille de l'entrée/image par
+  sous-échantillonnage.
+- Mais les deux partagent le même principe d'application d'une fenêtre et d'une
+  foulée sur le champ visuel
+
+#+name: fig:text-block
+#+caption[Max Pooling]: Max pooling
+#+attr_latex: :width 7cm
+[[./img/pooling.png]]
+
+
+** To POOL or CONV ?
+***                                                               :B_block:
+:PROPERTIES:
+:BEAMER_env: block
+:END:
+Dans leur article de 2014, Striving for Simplicity: The All Convolutional Net
+[[cite:&springenbergStrivingSimplicityAll2015]], Springenberg et al. recommande de
+supprimer entièrement la couche POOL et de s'appuyer uniqument sur les couches
+CONV avec une plus grande stride pour gérer le sous-échantillonnage des
+dimensions spatiales du volume. Leurs travaux ont démontré que cette approche
+fonctionne très bien sur une variété d'ensembles de données, y compris CIFAR-10
+(petites images, faible nombre de classes) et ImageNet (grandes images d'entrée,
+1 000 classes).
+***                                                               :B_block:
+:PROPERTIES:
+:BEAMER_env: block
+:END:
+Cette tendance se poursuit avec l'architecture ResNet, qui utilise également des
+couches CONV pour le sous-échantillonnage. Il devient de plus en plus courant de
+ne pas utiliser les couches POOL au milieu de l'architecture réseau et
+d'utiliser uniquement le Average Pooling à la fin du réseau si les couches
+FC/Dense doivent être évitées.
+
+
+* Représentations visuelles
+** Représentation visuelle
+***                                                              :B_column:
+:PROPERTIES:
+:BEAMER_env: column
+:BEAMER_COL: 0.6
+:END:
+- Tenter de comprendre quels calculs sont effectués à chaque couche dans les
+  réseaux de neurones est une direction de recherche très populaire
+  [[cite:&yosinskiUnderstandingNeuralNetworks2015]].
+- Une approche consiste à étudier:
+  - chaque couche en tant que groupe
+  - le type de calcul effectué par l'ensemble des neurones d'une couche
+    
+***                                                              :B_column:
+:PROPERTIES:
+:BEAMER_env: column
+:BEAMER_COL: 0.4
+:END:
+[[./img/alexnet.jpg]]
+
+** 2D convolutional layer
+
+#+name: fig:conv2D
+#+caption[conv 2D]: Conv layer 2D with 1 filter
+#+attr_latex: :width 10cm
+[[./img/conv2D.png]]
+
+* Exemple de LeNet-5
+** LeNet-5
+
+#+name: fig:lenet
+#+caption[LeNet-5]: LeNet architecture
+#+attr_latex: :width 10cm
+[[./img/lenet.png]]
+
+* Bibliography
+** References
+:PROPERTIES:
+:BEAMER_opt: shrink=10
+:END:
+
+bibliographystyle:unsrt
+bibliography:convnets.bib
+
+* Local Variables                                                  :noexport:
+# Local Variables:
+# eval: (setenv "PATH" "/Library/TeX/texbin/:$PATH" t)
+# eval: (setq org-src-fontify-natively t)
+# eval: (setq org-latex-image-default-width "5cm")
+# eval: (setq org-image-actual-width 400)
+# End:
+
+
+#+BEGIN_FRAME
+
+% Required package
+\usepackage{animate}
+
+\begin{frame}{GIFs in Beamer}
+\centering
+\animategraphics[loop,width=4cm]{10}{Thanks-}{0}{6}
+\end{frame}
